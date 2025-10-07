@@ -58,6 +58,7 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.PAT_TOKEN }}
+          settings: .claude/settings.json
           prompt: |
             You are an automated senior code reviewer and test writer.
 

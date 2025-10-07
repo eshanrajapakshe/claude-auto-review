@@ -1,0 +1,42 @@
+name: Claude Auto Review & PR
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  claude_review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Claude Code Action to review & create PR
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            You are an automated senior code reviewer and test writer.
+            For this feature branch:
+            1. Review all changed files.
+            2. Add **new Jest test cases** for new functionality (never delete or modify existing tests).
+            3. Place new tests in existing test files or create `<filename>.extra.test.js`.
+            4. Run eslint --fix and ensure code style matches repo rules.
+            5. Fix any simple issues.
+            6. Commit all changes with message: "chore(claude): added new tests & fixes".
+            7. Create or update a pull request to `main` summarizing changes.

@@ -58,6 +58,9 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.PAT_TOKEN }}
+          allow_read: "**/*"
+          allow_write: "**/*.js,**/*.json,**/*.md"
+          allow_bash: true
           prompt: |
             You are an automated senior code reviewer and test writer.
 

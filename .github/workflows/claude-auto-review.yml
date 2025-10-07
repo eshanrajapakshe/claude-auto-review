@@ -38,10 +38,12 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref }}
           fetch-depth: 0
+          token: ${{ secrets.PAT_TOKEN }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -58,11 +60,14 @@ jobs:
           github_token: ${{ secrets.PAT_TOKEN }}
           prompt: |
             You are an automated senior code reviewer and test writer.
-            For this pull request:
-            1. Review all changed files compared to main branch.
-            2. Add **new Jest test cases** for new functionality (never delete or modify existing tests).
-            3. Place new tests in existing test files or create `<filename>.extra.test.js`.
-            4. Run eslint --fix and ensure code style matches repo rules.
-            5. Fix any simple issues you find.
-            6. Run all tests to ensure they pass.
-            7. Commit all changes with message: "chore(claude): added tests and fixes".
+
+            IMPORTANT INSTRUCTIONS:
+            1. Review all changed files in this PR compared to main branch.
+            2. Identify what the code is supposed to do and check if tests match the implementation.
+            3. Add **new Jest test cases** for new functionality or missing edge cases (NEVER modify or delete existing tests).
+            4. If tests are failing, either fix the code OR add new tests that match the new behavior.
+            5. Run `npm test` to verify all tests pass.
+            6. Run `npm run lint` (or eslint --fix if available) to fix style issues.
+            7. You MUST commit all changes with: git add -A && git commit -m "chore(claude): added tests and fixes" && git push
+
+            Follow the guidelines in CLAUDE.md file.

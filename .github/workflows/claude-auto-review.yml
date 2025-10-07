@@ -4,13 +4,37 @@ on:
   push:
     branches:
       - 'feature/**'
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
 
 permissions:
   contents: write
   pull-requests: write
 
 jobs:
+  create_pr:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Pull Request
+        run: |
+          gh pr create \
+            --title "Auto PR: ${{ github.ref_name }}" \
+            --body "Automated PR from ${{ github.ref_name }}. Claude will review and add tests." \
+            --base main \
+            --head ${{ github.ref_name }} || echo "PR already exists"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   claude_review:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -26,17 +50,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Claude Code Action to review & create PR
+      - name: Run Claude Code Action to review & add tests
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             You are an automated senior code reviewer and test writer.
-            For this feature branch:
-            1. Review all changed files.
+            For this pull request:
+            1. Review all changed files compared to main branch.
             2. Add **new Jest test cases** for new functionality (never delete or modify existing tests).
             3. Place new tests in existing test files or create `<filename>.extra.test.js`.
             4. Run eslint --fix and ensure code style matches repo rules.
-            5. Fix any simple issues.
-            6. Commit all changes with message: "chore(claude): added new tests & fixes".
-            7. Create or update a pull request to `main` summarizing changes.
+            5. Fix any simple issues you find.
+            6. Run all tests to ensure they pass.
+            7. Commit all changes with message: "chore(claude): added tests and fixes".

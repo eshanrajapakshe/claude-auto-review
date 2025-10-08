@@ -3,7 +3,7 @@ name: Claude Auto Review & PR
 on:
   push:
     branches:
-      - 'feature/**'
+      - "feature/**"
   pull_request:
     branches:
       - main
@@ -15,11 +15,12 @@ permissions:
   id-token: write
 
 jobs:
+  # 1. Create PR automatically when code is pushed to a feature branch
   create_pr:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
-        contents: write
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -36,11 +37,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT_TOKEN }}
 
+  # 2. Claude reviews the PR, adds/fixes tests, commits, and pushes
   claude_review:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
-        contents: write
+      contents: write
+      pull-requests: write
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v4
@@ -50,13 +53,12 @@ jobs:
           token: ${{ secrets.PAT_TOKEN }}
 
       - name: Fetch main branch
-        run: |
-          git fetch origin main:main
+        run: git fetch origin main:main
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install dependencies
         run: npm ci
@@ -64,30 +66,38 @@ jobs:
       - name: Run Claude Code Action to review & add tests
         uses: anthropics/claude-code-action@v1
         env:
-            ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-            GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-            CLAUDE_ENV: ci
-            CLAUDE_AUTO_APPROVE: true
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+          CLAUDE_ENV: ci
+          CLAUDE_AUTO_APPROVE: true
+          CLAUDE_ALLOW_WRITES: true
+          CLAUDE_WRITE_PATHS: "src,__tests__"
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.PAT_TOKEN }}
+          skip_permission_prompts: true
+          allowed_tools: "Read Edit Bash"
+          auto_approve_tools: "Edit Bash"
           settings: .claude/settings.json
           prompt: |
-            You are an automated reviewer running inside a GitHub Actions CI environment.
-            You can safely run non-destructive commands like:
-            - npm install / npm run lint / npm test
-            - git add / git commit / git push
-            Do NOT ask for approval — run them directly.
-            
-            You are an automated senior code reviewer and test writer.
+            You are an automated senior code reviewer and test writer
+            running inside a GitHub Actions CI environment.
 
-            IMPORTANT INSTRUCTIONS:
-            1. Review all changed files in this PR compared to main branch.
-            2. Identify what the code is supposed to do and check if tests match the implementation.
-            3. Add **new Jest test cases** for new functionality or missing edge cases (NEVER modify or delete existing tests).
-            4. If tests are failing, either fix the code OR add new tests that match the new behavior.
-            5. Run `npm test` to verify all tests pass.
-            6. Run `npm run lint` (or eslint --fix if available) to fix style issues.
-            7. You MUST commit all changes with: git add -A && git commit -m "chore(claude): added tests and fixes" && git push
+            You have permission to:
+            - Read and modify files in src/ and __tests__/
+            - Run safe commands: npm ci, npm run lint, npm test
+            - Stage, commit, and push changes to this PR branch
 
-            Follow the guidelines in CLAUDE.md file.
+            Your job:
+            1. Review all changed files compared to the main branch.
+            2. Check if test coverage matches the new functionality.
+            3. Add **new Jest test cases** for missing or edge scenarios.
+               - Never delete or modify existing tests.
+               - Add new tests in separate `test()` blocks or `.extra.test.js` files.
+            4. Fix simple lint or syntax errors if found.
+            5. Ensure `npm test` passes before committing.
+            6. Commit with message: 
+               "chore(claude): added tests and fixes"
+            7. Push changes directly — no approval needed.
+
+            Follow the policies in CLAUDE.md.

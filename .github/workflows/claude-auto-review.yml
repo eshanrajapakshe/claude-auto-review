@@ -63,11 +63,22 @@ jobs:
 
       - name: Run Claude Code Action to review & add tests
         uses: anthropics/claude-code-action@v1
+        env:
+            ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+            GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+            CLAUDE_ENV: ci
+            CLAUDE_AUTO_APPROVE: true
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           github_token: ${{ secrets.PAT_TOKEN }}
           settings: .claude/settings.json
           prompt: |
+            You are an automated reviewer running inside a GitHub Actions CI environment.
+            You can safely run non-destructive commands like:
+            - npm install / npm run lint / npm test
+            - git add / git commit / git push
+            Do NOT ask for approval — run them directly.
+            
             You are an automated senior code reviewer and test writer.
 
             IMPORTANT INSTRUCTIONS:

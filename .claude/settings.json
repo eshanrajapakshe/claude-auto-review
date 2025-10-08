@@ -1,5 +1,16 @@
 {
-  "autoApproveCommands": true,
-  "autoApproveFileWrites": true
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm test)",
+      "Bash(npm ci)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push)",
+      "Edit",
+      "MultiEdit",
+      "Write",
+      "Read"
+    ]
+  }
 }
- 
